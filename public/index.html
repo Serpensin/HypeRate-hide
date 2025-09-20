@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HypeRate Heart Rate Widget - System Overview</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border-left: 5px solid #007bff;
+        }
+        
+        .section h2 {
+            color: #007bff;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+        
+        .demo-heart {
+            display: inline-block;
+            font-size: 2em;
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+            margin: 0 10px;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .flow-step {
+            flex: 1;
+            min-width: 200px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .flow-step::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5em;
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .flow-step:last-child::after {
+            display: none;
+        }
+        
+        .flow-step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+        }
+        
+        .code-block.tree {
+            white-space: pre-wrap;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .feature-card h3 {
+            color: #28a745;
+            margin-top: 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 8px;
+            animation: blink 2s infinite;
+        }
+        
+        .status-indicator.offline {
+            background: #dc3545;
+            animation: none;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .footer {
+            background: #343a40;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .flow-diagram {
+                flex-direction: column;
+            }
+            
+            .flow-step::after {
+                content: '↓';
+                right: 50%;
+                top: auto;
+                bottom: -20px;
+                transform: translateX(50%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1><span class="demo-heart">❤️</span> HypeRate Heart Rate Widget <span class="demo-heart">❤️</span></h1>
+            <p>Real-time heart rate display system for streamers and content creators</p>
+            <p><span class="status-indicator offline"></span> Server Status: <strong>Not Running</strong></p>
+        </div>
+        
+        <div class="content">
+            <!-- System Overview -->
+            <div class="section">
+                <h2>🎯 What is this system?</h2>
+                <p>This is a <strong>real-time heart rate widget system</strong> designed for streamers, gamers, and content creators who want to display their live heart rate data on their streams or overlays.</p>
+                
+                <p>The system scrapes heart rate data from <strong>HypeRate.io</strong> and displays it as a beautiful, animated widget that can be used as a browser source in OBS Studio or similar streaming software.</p>
+                
+                <div class="warning">
+                    <strong>Note:</strong> You need a HypeRate.io compatible heart rate device (Apple Watch, Fitbit, etc.) to use this system.
+                </div>
+            </div>
+            
+            <!-- How it Works -->
+            <div class="section">
+                <h2>⚙️ How it works</h2>
+                <div class="flow-diagram">
+                    <div class="flow-step">
+                        <h3>1. Heart Rate Device</h3>
+                        <p>Your Apple Watch, Fitbit, or other device measures your heart rate</p>
+                    </div>
+                    <div class="flow-step">
+                        <h3>2. HypeRate.io</h3>
+                        <p>Data is sent to HypeRate.io and displayed on your personal dashboard</p>
+                    </div>
+                    <div class="flow-step">
+                        <h3>3. Our Server</h3>
+                        <p>Puppeteer scrapes your HypeRate page every second for the latest data</p>
+                    </div>
+                    <div class="flow-step">
+                        <h3>4. Widget Display</h3>
+                        <p>WebSocket broadcasts data to your widget in real-time</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features -->
+            <div class="section">
+                <h2>✨ Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🔄 Real-time Updates</h3>
+                        <p>Heart rate data updates every second with minimal delay</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>💓 Animated Heart</h3>
+                        <p>Pulsing heart emoji that matches your heartbeat rhythm</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🎨 Visual States</h3>
+                        <p>Green when active, red when inactive, with smooth transitions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🛡️ Auto-Recovery</h3>
+                        <p>Automatically handles connection issues and page reloads</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📱 Browser Source Ready</h3>
+                        <p>Perfect for OBS Studio browser sources with transparent background</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🔧 Easy Setup</h3>
+                        <p>Simple batch files for installation and running</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Technical Details -->
+            <div class="section">
+                <h2>🔧 Technical Details</h2>
+                <h3>Server Architecture:</h3>
+                <ul>
+                    <li><strong>Node.js & Express:</strong> Web server framework</li>
+                    <li><strong>Puppeteer:</strong> Browser automation for scraping HypeRate.io</li>
+                    <li><strong>WebSocket (ws):</strong> Real-time communication</li>
+                    <li><strong>Smart Error Handling:</strong> Detects stuck pages and auto-reloads</li>
+                </ul>
+                
+                <h3>Widget Features:</h3>
+                <ul>
+                    <li><strong>CSS Animations:</strong> Smooth pulsing heart effect</li>
+                    <li><strong>Transparent Background:</strong> Perfect for overlays</li>
+                    <li><strong>Auto-reconnection:</strong> Handles server disconnections</li>
+                    <li><strong>Smart Zero Handling:</strong> Prevents flickering when heart rate briefly shows 0</li>
+                </ul>
+            </div>
+            
+            <!-- Setup Instructions -->
+            <div class="section">
+                <h2>🚀 Setup Instructions</h2>
+                <ol>
+                    <li><strong>Install Dependencies:</strong> Run <code>setup.bat</code> to install required packages</li>
+                    <li><strong>Configure HypeRate URL:</strong> Edit <code>config.json</code> with your personal HypeRate.io URL</li>
+                    <li><strong>Start Server:</strong> Run <code>run.bat</code> to start the heart rate server</li>
+                    <li><strong>Add to OBS:</strong> Add browser source pointing to <code>http://127.0.0.1:3000/widget</code></li>
+                </ol>
+                
+                <div class="code-block">// Example config.json<br>{<br>&nbsp;&nbsp;"url": "https://app.hyperate.io/YOUR_ID_HERE"<br>}</div>
+            </div>
+            
+            <!-- File Structure -->
+            <div class="section">
+                <h2>📁 Project Structure</h2>
+                <div class="code-block tree">HypeRate-hide/
+├── setup.bat          # Install dependencies
+├── run.bat            # Start the server  
+├── server.js          # Main server logic
+├── config.json        # HypeRate URL configuration
+├── widget/
+│   └── index.html     # Heart rate widget
+└── public/
+    └── index.html     # This documentation page</div>
+            </div>
+            
+            <!-- Usage Tips -->
+            <div class="section">
+                <h2>💡 Usage Tips</h2>
+                <ul>
+                    <li><strong>OBS Browser Source:</strong> Set width: 400px, height: 300px for best results</li>
+                    <li><strong>Custom Styling:</strong> Edit <code>widget/index.html</code> to change colors, sizes, or animations</li>
+                    <li><strong>Multiple Widgets:</strong> You can have multiple browser sources pointing to the same server</li>
+                    <li><strong>Heart Rate Range:</strong> Works with any heart rate value from your device</li>
+                    <li><strong>Transparent Background:</strong> Widget background is transparent for clean overlays</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>HypeRate Heart Rate Widget System - Built for streamers, by streamers ❤️</p>
+            <p>Server running on <strong>http://127.0.0.1:3000</strong></p>
+        </div>
+    </div>
+    
+    <script>
+        // Server status detection
+        function checkServerStatus() {
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = document.querySelector('.header p:last-child strong');
+            
+            // Try to connect to WebSocket to test server availability
+            const testWs = new WebSocket('ws://127.0.0.1:3000');
+            
+            testWs.onopen = function() {
+                // Server is running
+                statusIndicator.classList.remove('offline');
+                statusText.textContent = 'Running';
+                testWs.close();
+            };
+            
+            testWs.onerror = function() {
+                // Server is not running
+                statusIndicator.classList.add('offline');
+                statusText.textContent = 'Not Running';
+            };
+            
+            testWs.onclose = function() {
+                // Connection closed (expected after onopen)
+            };
+        }
+        
+        // Check server status when page loads
+        checkServerStatus();
+        
+        // Check server status every 10 seconds
+        setInterval(checkServerStatus, 10000);
+    </script>
+</body>
+</html>

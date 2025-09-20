@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Heartbeat Widget</title>
+<style>
+  /* ==========================================
+     HEARTBEAT WIDGET CSS STYLES
+     ========================================== */
+  
+  /* Reset default browser styles and set up full-screen transparent background */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: transparent;    /* Transparent background for overlay use */
+    display: flex;
+    justify-content: center;    /* Center horizontally */
+    align-items: center;        /* Center vertically */
+    overflow: hidden;           /* Hide scrollbars */
+  }
+
+  /* Main container for the heartbeat widget */
+  .heartbeat-container {
+    display: flex;
+    flex-direction: column;     /* Stack heart and number vertically */
+    align-items: center;        /* Center items horizontally */
+    justify-content: center;    /* Center items vertically */
+    opacity: 0;                 /* Start hidden, will fade in when data arrives */
+    transition: opacity 0.5s ease;  /* Smooth fade in/out animation */
+  }
+
+  /* Heart emoji styling with pulsing animation */
+  .heart {
+    font-size: 8em;             /* Very large heart emoji */
+    color: lime;                /* Bright green color when active */
+    text-shadow: 0 0 20px lime; /* Glowing green effect */
+    animation: pulse 1s infinite; /* Default animation - will be updated dynamically */
+    transform-origin: center;   /* Scale from center point */
+  }
+
+  /* Heart rate number display */
+  .heartrate-value {
+    font-size: 4em;             /* Large readable text */
+    color: white;               /* White text */
+    text-shadow: 0 0 10px black; /* Black glow for better visibility */
+    margin-top: -0.1em;         /* Slight negative margin to bring closer to heart */
+  }
+
+  /* Keyframe animation for heart pulsing effect */
+  /* Simulates a heartbeat rhythm with two pulses per cycle */
+  @keyframes pulse {
+    0% { transform: scale(1); }    /* Normal size */
+    25% { transform: scale(1.1); } /* First pulse - larger */
+    50% { transform: scale(1); }   /* Back to normal */
+    75% { transform: scale(1.1); } /* Second pulse - larger */
+    100% { transform: scale(1); }  /* Back to normal */
+  }
+
+  /* Inactive state styling (when heart rate is 0 or connection lost) */
+  .inactive .heart {
+    color: red;                 /* Change to red color */
+    text-shadow: 0 0 15px red;  /* Red glow effect */
+    animation: none;            /* Stop the pulsing animation */
+  }
+</style>
+</head>
+<body>
+  <!-- Main widget HTML structure -->
+  <div class="heartbeat-container" id="widget">
+    <div class="heart">❤️</div>                           <!-- Heart emoji -->
+    <div class="heartrate-value" id="value">--</div>      <!-- Heart rate number display -->
+  </div>
+
+  <script>
+    // ==========================================
+    // HEARTBEAT WIDGET JAVASCRIPT
+    // ==========================================
+    
+    // Get references to DOM elements for easy manipulation
+    const container = document.getElementById("widget");
+    const valueEl = document.getElementById("value");
+    const heartEl = document.querySelector(".heart");
+    
+    // Establish WebSocket connection to the server on port 3000
+    const ws = new WebSocket("ws://127.0.0.1:3000");
+  
+    // Timeout variable to track heartbeat activity
+    let heartbeatTimeout;
+    
+    // Variables for smooth animation transitions
+    let pendingBPM = null;
+    let animationChangeTimeout = null;
+    
+    // Connection management variables
+    let reconnectAttempts = 0;
+    let maxReconnectAttempts = 5;
+    let reconnectDelay = 2000; // Start with 2 seconds
+  
+    // Function to update heart animation speed based on heart rate
+    function updateHeartAnimation(bpm) {
+      if (bpm > 0) {
+        const animationDuration = (60 / bpm) * 1000;
+        const currentDuration = parseFloat(heartEl.style.animationDuration) || 1000;
+        
+        // Only update if the duration has changed significantly
+        if (Math.abs(currentDuration - animationDuration) > 50) {
+          // Store the new BPM for later application
+          pendingBPM = bpm;
+          
+          // Clear any existing timeout
+          if (animationChangeTimeout) {
+            clearTimeout(animationChangeTimeout);
+          }
+          
+          // Wait for current animation cycle to complete, then apply new rhythm
+          animationChangeTimeout = setTimeout(() => {
+            if (pendingBPM !== null) {
+              const newDuration = (60 / pendingBPM) * 1000;
+              heartEl.style.animationDuration = `${newDuration}ms`;
+              pendingBPM = null;
+            }
+          }, currentDuration);
+        }
+        
+        heartEl.style.animationPlayState = 'running';
+      } else {
+        // Stop animation when heart rate is 0
+        heartEl.style.animationPlayState = 'paused';
+        pendingBPM = null;
+        if (animationChangeTimeout) {
+          clearTimeout(animationChangeTimeout);
+          animationChangeTimeout = null;
+        }
+      }
+    }
+  
+    // WebSocket event handlers
+    
+    // When connection is established
+    ws.onopen = () => {
+      console.log("Connected to Heartbeat server");
+      // Reset reconnection attempts on successful connection
+      reconnectAttempts = 0;
+      reconnectDelay = 2000;
+    };
+  
+    // When connection is lost
+    ws.onclose = () => {
+      console.log("Disconnected from server");
+      
+      // Use exponential backoff for reconnection attempts
+      if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        const currentDelay = reconnectDelay * Math.pow(2, reconnectAttempts - 1);
+        console.log(`Attempting to reconnect in ${currentDelay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+        
+        setTimeout(() => {
+          location.reload();
+        }, currentDelay);
+      } else {
+        console.log("Max reconnection attempts reached. Manual refresh may be required.");
+        // Show error state but don't auto-refresh anymore
+        valueEl.textContent = "ERR";
+        container.classList.add("inactive");
+      }
+    };
+  
+    // When new heart rate data is received from server
+    ws.onmessage = (event) => {
+      // Parse the heart rate value from the server
+      const val = parseInt(event.data, 10);
+  
+      // Handle zero heart rate (inactive state)
+      if(val === 0){
+        container.style.opacity = 0;        // Hide the widget
+        container.classList.add("inactive"); // Add inactive styling
+        updateHeartAnimation(0); // Stop heart animation
+      } else {
+        container.style.opacity = 1;          // Show the widget
+        container.classList.remove("inactive"); // Remove inactive styling
+        updateHeartAnimation(val); // Update heart animation to match BPM
+      }
+  
+      // Update the displayed heart rate value
+      valueEl.textContent = val;
+  
+      // Reset the heartbeat timeout
+      // If no new data arrives within 15 seconds, something might be wrong
+      clearTimeout(heartbeatTimeout);
+      heartbeatTimeout = setTimeout(() => {
+        console.log("No heartbeat for 15s → check connection");
+        // Instead of immediately reloading, just show warning state
+        valueEl.textContent = "---";
+        container.style.opacity = 0.5;
+        
+        // Try to reconnect after 30 seconds of no data
+        setTimeout(() => {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            console.log("Attempting reconnection after extended timeout");
+            location.reload();
+          }
+        }, 15000); // Additional 15 seconds = 30 total
+      }, 15000); // 15 second timeout instead of 5
+    };
+  </script>
+</body>
+</html>
