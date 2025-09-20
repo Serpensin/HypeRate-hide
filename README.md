@@ -42,6 +42,7 @@ The **HypeRate Heart Rate Widget** is a real-time heart rate display system desi
 
 ### How It Works
 ```mermaid
+graph LR
     A[📱 Your Device] --> B[🌐 HypeRate.io]
     B --> C[🖥️ Our Server]
     C --> D[📺 OBS Widget]
