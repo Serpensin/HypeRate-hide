@@ -29,29 +29,32 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}
-        tags: |
-          type=ref,event=branch
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' }}
-
     - name: Build and Push Docker Image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        platforms: ${{ matrix.platform }}
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      run: |
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+        IMAGE_NAME="ghcr.io/$REPO_OWNER/$REPO_NAME"
+        PLATFORM_TAG=$(echo "${{ matrix.platform }}" | tr '/' '-')
+        
+        # Determine tags based on trigger
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          TAG="${{ github.event.release.tag_name }}"
+          docker buildx build \
+            --compress \
+            --platform ${{ matrix.platform }} \
+            --tag $IMAGE_NAME:$TAG-$PLATFORM_TAG \
+            --tag $IMAGE_NAME:latest-$PLATFORM_TAG \
+            --push .
+        else
+          # For workflow_dispatch or branch pushes
+          TAG="latest"
+          docker buildx build \
+            --compress \
+            --platform ${{ matrix.platform }} \
+            --tag $IMAGE_NAME:$TAG-$PLATFORM_TAG \
+            --push .
+        fi
+      shell: bash
 
   create-multiarch-manifest:
     runs-on: ubuntu-latest
@@ -65,29 +68,29 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for manifest
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ghcr.io/${{ github.repository }}
-        tags: |
-          type=ref,event=branch
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' }}
-
-    - name: Create and push multi-architecture manifest
+    - name: Create Multi-Architecture Manifest
       run: |
-        # Create manifest for each tag
-        echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
-          if [ -n "$tag" ]; then
-            echo "Creating manifest for: $tag"
-            docker buildx imagetools create \
-              --tag "$tag" \
-              "$tag-linux-amd64" \
-              "$tag-linux-arm64"
-          fi
-        done
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+        IMAGE_NAME="ghcr.io/$REPO_OWNER/$REPO_NAME"
+        
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          TAG="${{ github.event.release.tag_name }}"
+          # Create versioned tag manifest
+          docker buildx imagetools create \
+            --tag $IMAGE_NAME:$TAG \
+            $IMAGE_NAME:$TAG-linux-amd64 \
+            $IMAGE_NAME:$TAG-linux-arm64
+          # Create latest tag manifest
+          docker buildx imagetools create \
+            --tag $IMAGE_NAME:latest \
+            $IMAGE_NAME:latest-linux-amd64 \
+            $IMAGE_NAME:latest-linux-arm64
+        else
+          # For workflow_dispatch
+          docker buildx imagetools create \
+            --tag $IMAGE_NAME:latest \
+            $IMAGE_NAME:latest-linux-amd64 \
+            $IMAGE_NAME:latest-linux-arm64
+        fi
       shell: bash
