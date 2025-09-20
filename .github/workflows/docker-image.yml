@@ -1,7 +1,6 @@
 name: HypeRate Widget Docker Build
 
 on:  
-  workflow_dispatch:
   release:
     types: [published]
 
