@@ -2,9 +2,9 @@
 
 <div align="center">
 
-<img src="https://img.shields.io/badge/Heart_Rate-Live-red?style=for-the-badge&logo=heart&logoColor=white" alt="Heart Rate Demo">
-<img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
-<img src="https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
+![Heart Rate Demo](https://img.shields.io/badge/Heart_Rate-Live-red?style=for-the-badge&logo=heart&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 
 **Real-time heart rate display widget for streamers and content creators**
 
