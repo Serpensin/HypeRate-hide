@@ -304,7 +304,7 @@
                     <li><strong>Install Dependencies:</strong> Run <code>setup.bat</code> to install required packages</li>
                     <li><strong>Configure HypeRate URL:</strong> Edit <code>config.json</code> with your personal HypeRate.io URL</li>
                     <li><strong>Start Server:</strong> Run <code>run.bat</code> to start the heart rate server</li>
-                    <li><strong>Add to OBS:</strong> Add browser source pointing to <code>http://127.0.0.1:3000/widget</code></li>
+                    <li><strong>Add to OBS:</strong> Add browser source pointing to <code id="widget-url">Loading...</code> (URL will update automatically when server is running)</li>
                 </ol>
                 
                 <div class="code-block">// Example config.json<br>{<br>&nbsp;&nbsp;"url": "https://app.hyperate.io/YOUR_ID_HERE"<br>}</div>
@@ -339,33 +339,75 @@
         
         <div class="footer">
             <p>HypeRate Heart Rate Widget System - Built for streamers, by streamers ❤️</p>
-            <p>Server running on <strong>http://127.0.0.1:3000</strong></p>
+            <p>Server running on <strong id="server-url">Loading...</strong></p>
         </div>
     </div>
     
     <script>
+        // Get the current host (IP and port) dynamically
+        const currentHost = window.location.host;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const serverUrl = `${window.location.protocol}//${currentHost}`;
+        const wsUrl = `${protocol}//${currentHost}`;
+        
+        console.log('Current host:', currentHost);
+        console.log('Server URL:', serverUrl);
+        console.log('WebSocket URL:', wsUrl);
+        
+        // Update the UI with the correct URLs
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, updating URLs...');
+            
+            // Update server URL in footer
+            const serverUrlElement = document.getElementById('server-url');
+            if (serverUrlElement) {
+                serverUrlElement.textContent = serverUrl;
+                console.log('Updated server URL to:', serverUrl);
+            } else {
+                console.error('server-url element not found');
+            }
+            
+            // Update widget URL in instructions
+            const widgetUrlElement = document.getElementById('widget-url');
+            if (widgetUrlElement) {
+                widgetUrlElement.textContent = `${serverUrl}/widget`;
+                console.log('Updated widget URL to:', `${serverUrl}/widget`);
+            } else {
+                console.error('widget-url element not found');
+            }
+        });
+        
         // Server status detection
         function checkServerStatus() {
+            console.log('Checking server status...');
             const statusIndicator = document.querySelector('.status-indicator');
             const statusText = document.querySelector('.header p:last-child strong');
             
+            if (!statusIndicator || !statusText) {
+                console.error('Status elements not found:', { statusIndicator, statusText });
+                return;
+            }
+            
             // Try to connect to WebSocket to test server availability
-            const testWs = new WebSocket('ws://127.0.0.1:3000');
+            const testWs = new WebSocket(wsUrl);
             
             testWs.onopen = function() {
+                console.log('WebSocket connected - server is running');
                 // Server is running
                 statusIndicator.classList.remove('offline');
                 statusText.textContent = 'Running';
                 testWs.close();
             };
             
-            testWs.onerror = function() {
+            testWs.onerror = function(error) {
+                console.log('WebSocket error - server not running:', error);
                 // Server is not running
                 statusIndicator.classList.add('offline');
                 statusText.textContent = 'Not Running';
             };
             
-            testWs.onclose = function() {
+            testWs.onclose = function(event) {
+                console.log('WebSocket closed:', event.code, event.reason);
                 // Connection closed (expected after onopen)
             };
         }

@@ -83,8 +83,11 @@
     const valueEl = document.getElementById("value");
     const heartEl = document.querySelector(".heart");
     
-    // Establish WebSocket connection to the server on port 3000
-    const ws = new WebSocket("ws://127.0.0.1:3000");
+    // Establish WebSocket connection to the server using dynamic host detection
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const currentHost = window.location.host;
+    const wsUrl = `${protocol}//${currentHost}`;
+    const ws = new WebSocket(wsUrl);
   
     // Timeout variable to track heartbeat activity
     let heartbeatTimeout;
