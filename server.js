@@ -97,8 +97,8 @@ const MAX_SAME_VALUES = 10;     // Maximum identical values before reloading pag
   setInterval(async () => {
     try {
       // Extract heart rate value from the HypeRate page
-      // Looks for a <p> element with class "heartrate" and gets its text content
-      const val = await page.$eval("p.heartrate", el => el.textContent.trim());
+      // Looks for a <div> element with ID "heartRate" and gets its text content
+      const val = await page.$eval("#heartRate", el => el.textContent.trim());
   
       console.log("❤️ Current heart rate:", val);
   

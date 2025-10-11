@@ -1,5 +1,5 @@
 {
   "_comment": "HypeRate Heart Rate Widget Configuration",
   "_description": "This file contains the configuration for the heartbeat widget server. The 'url' field should contain your personal HypeRate.io URL where your heart rate data is displayed.",
-  "url": "https://app.hyperate.io/internal-testing"
+  "url": "https://widgets.hyperate.io/animation/79/internal-testing"
 }

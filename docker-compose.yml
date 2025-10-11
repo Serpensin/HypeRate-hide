@@ -6,7 +6,7 @@ services:
       - "3000:3000"
     environment:
       # Set your HypeRate.io URL here
-      - HYPERATE_URL=https://app.hyperate.io/internal-testing
+      - HYPERATE_URL=https://widgets.hyperate.io/animation/79/internal-testing
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
