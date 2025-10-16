@@ -41,6 +41,30 @@ app.use(express.static("./public"));
 // Serve the heart rate widget from ./widget directory
 app.use('/widget', express.static("./widget"));
 
+// Health check endpoint for Docker/monitoring systems
+app.get('/health', (req, res) => {
+  const timeSinceLastSuccess = Date.now() - lastSuccessfulRead;
+  const isHealthy = timeSinceLastSuccess < MAX_ERROR_TIME && 
+                    pageRecreationAttempts < MAX_RECREATION_ATTEMPTS;
+  
+  const status = {
+    status: isHealthy ? 'healthy' : 'unhealthy',
+    lastSuccessfulRead: new Date(lastSuccessfulRead).toISOString(),
+    timeSinceLastSuccess: `${Math.floor(timeSinceLastSuccess / 1000)}s`,
+    consecutiveErrors: consecutiveErrors,
+    pageRecreationAttempts: pageRecreationAttempts,
+    maxRecreationAttempts: MAX_RECREATION_ATTEMPTS,
+    connectedClients: wss ? wss.clients.size : 0
+  };
+  
+  const httpStatus = isHealthy ? 200 : 503;
+  res.status(httpStatus).json(status);
+  
+  if (!isHealthy) {
+    console.log(`🏥 Health check FAILED: ${JSON.stringify(status)}`);
+  }
+});
+
 // Start HTTP server on port 3000
 const server = app.listen(3000, () =>
   console.log("✅ Server running on http://localhost:3000")
@@ -55,6 +79,13 @@ let browser, page;              // Puppeteer browser and page instances
 let lastValues = [];            // Array to store recent heart rate values
 let lastSentZero = false;       // Flag to prevent sending multiple zeros in a row
 const MAX_SAME_VALUES = 10;     // Maximum identical values before reloading page
+
+// Health check tracking variables
+let lastSuccessfulRead = Date.now();  // Timestamp of last successful heart rate read
+let consecutiveErrors = 0;            // Count of consecutive errors
+let pageRecreationAttempts = 0;       // Count of page recreation attempts
+const MAX_ERROR_TIME = 60000;         // Maximum time without successful read (60 seconds)
+const MAX_RECREATION_ATTEMPTS = 5;    // Maximum page recreation attempts before declaring unhealthy
 
 // Main server logic - runs immediately when server starts
 (async () => {
@@ -96,11 +127,27 @@ const MAX_SAME_VALUES = 10;     // Maximum identical values before reloading pag
   // Set up interval to scrape heart rate data every second
   setInterval(async () => {
     try {
+      // Check if page is still attached and valid
+      if (!page || page.isClosed()) {
+        console.log("🔄 Page is closed, recreating...");
+        pageRecreationAttempts++;
+        page = await browser.newPage();
+        await page.goto(config.url, { waitUntil: "networkidle2" });
+        console.log("✅ Page recreated successfully");
+        lastValues = []; // Reset values after page recreation
+        return;
+      }
+
       // Extract heart rate value from the HypeRate page
       // Looks for a <div> element with ID "heartRate" and gets its text content
       const val = await page.$eval("#heartRate", el => el.textContent.trim());
   
       console.log("❤️ Current heart rate:", val);
+      
+      // Update health tracking - successful read
+      lastSuccessfulRead = Date.now();
+      consecutiveErrors = 0;
+      pageRecreationAttempts = 0;  // Reset recreation attempts on success
   
       // Keep track of recent values to detect if the page is stuck
       lastValues.push(val);
@@ -139,8 +186,40 @@ const MAX_SAME_VALUES = 10;     // Maximum identical values before reloading pag
       });
   
     } catch (e) {
-      // Handle errors gracefully (e.g., if HypeRate page structure changes)
+      // Handle errors gracefully (e.g., if HypeRate page structure changes or page becomes detached)
       console.warn("⚠️ Could not read heartrate:", e.message);
+      consecutiveErrors++;
+      
+      // Check if it's a detached frame error or execution context destroyed
+      if (e.message.includes("detached") || 
+          e.message.includes("Execution context was destroyed") ||
+          e.message.includes("Session closed")) {
+        console.log("🔄 Detected detached page, reloading...");
+        try {
+          await page.reload({ waitUntil: "networkidle2", timeout: 10000 });
+          console.log("✅ Page reloaded successfully");
+          lastValues = []; // Reset values after reload
+          consecutiveErrors = 0;
+        } catch (reloadError) {
+          console.error("❌ Failed to reload page:", reloadError.message);
+          console.log("🔄 Attempting to recreate page...");
+          pageRecreationAttempts++;
+          
+          if (pageRecreationAttempts >= MAX_RECREATION_ATTEMPTS) {
+            console.error(`❌ Max recreation attempts (${MAX_RECREATION_ATTEMPTS}) reached. Container will be marked unhealthy.`);
+          } else {
+            try {
+              await page.close().catch(() => {}); // Try to close the old page
+              page = await browser.newPage();
+              await page.goto(config.url, { waitUntil: "networkidle2" });
+              console.log("✅ Page recreated successfully");
+              lastValues = [];
+            } catch (recreateError) {
+              console.error("❌ Failed to recreate page:", recreateError.message);
+            }
+          }
+        }
+      }
     }
   }, 1000); // Run every 1000ms (1 second)
 })();
